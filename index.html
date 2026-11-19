@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Google PMS Dashboard (Demo)</title>
+<style>
+:root{--bg:#f6f8fc;--c:#fff;--t:#1f2328;--m:#5f6368;--b:#dadce0;--blue:#4285f4;--red:#ea4335;--yel:#fbbc04;--grn:#34a853}
+@media(prefers-color-scheme:dark){:root{--bg:#16181d;--c:#1f232a;--t:#e8eaed;--m:#9aa0a6;--b:#3c4043}}
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,Roboto,Arial,sans-serif;background:var(--bg);color:var(--t)}
+header{background:var(--c);border-bottom:1px solid var(--b);padding:10px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;position:sticky;top:0;z-index:5}
+.logo{font-size:20px;font-weight:600}.logo b:nth-child(1){color:var(--blue)}.logo b:nth-child(2){color:var(--red)}.logo b:nth-child(3){color:var(--yel)}.logo b:nth-child(4){color:var(--blue)}.logo b:nth-child(5){color:var(--grn)}.logo b:nth-child(6){color:var(--red)}
+.demo{background:var(--yel);color:#000;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}
+.sp{flex:1}main{max-width:1200px;margin:0 auto;padding:16px}
+button,select,input,textarea{font:inherit;color:var(--t);background:var(--c);border:1px solid var(--b);border-radius:8px;padding:6px 10px}
+button{cursor:pointer}button:hover:not(:disabled){border-color:var(--blue)}.seg button.on,button.pri{background:var(--blue);color:#fff;border-color:var(--blue)}
+.seg{display:inline-flex}.seg button{border-radius:0}.seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0}
+input,textarea,select{width:100%}textarea{min-height:60px;resize:vertical}:disabled{opacity:.65;background:transparent}
+.card{background:var(--c);border:1px solid var(--b);border-radius:12px;padding:14px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.emp{cursor:pointer}.emp:hover{border-color:var(--blue)}.m{color:var(--m);font-size:12px}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;background:var(--bg);border:1px solid var(--b);margin-right:4px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.tabs button.on{background:var(--blue);color:#fff}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--b);vertical-align:top}th{font-size:12px;color:var(--m)}
+.row{display:flex;flex-wrap:wrap;gap:14px}.row>*{flex:1 1 300px}label{font-size:12px;color:var(--m);display:block;margin-top:8px}
+.warn{background:#fce8e6;color:#a50e0e;padding:6px 10px;border-radius:8px;margin-top:8px}.note{background:#e8f0fe;color:#174ea6;padding:8px 10px;border-radius:8px;margin:8px 0}
+.bar{height:10px;background:var(--b);border-radius:5px;overflow:hidden}.bar i{display:block;height:100%;background:var(--grn)}
+h2,h3{margin:6px 0}small{color:var(--m)}a{color:var(--blue)}
+</style></head><body>
+<header><div class="logo" id="home" style="cursor:pointer"><b>G</b><b>o</b><b>o</b><b>g</b><b>l</b><b>e</b> PMS</div><span class="demo">DEMO DATA</span><span class="sp"></span>
+<div class="seg" id="ctxs"></div>
+<select id="role" style="width:auto"><option value="admin">Role: Admin</option><option value="manager">Role: Manager</option><option value="employee">Role: Employee</option></select>
+<button id="exp">Export</button><button id="imp">Import</button><button id="rst">Reset</button><input type="file" id="file" hidden accept=".json"></header>
+<main id="app"></main>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const KEY='google-pms-demo-v1';
+// ---------- Context definitions (Global / America / India) ----------
+const CT={
+global:{n:'Google (Global)',ic:'🌐',w:[['Impact',30],['Collaboration',20],['Functional Excellence',25],['Leadership & Googleyness',15],['Innovation',10]],
+ cult:'Blend of global norms: OKR-based goals, peer-informed calibration, growth-mindset coaching, consistent global bands.',
+ guide:'Anchor each review to OKR evidence. Separate impact from effort. Run calibration before ratings become final. Keep tone consistent across regions.',
+ rew:'Equity refresh (GSUs), spot/peer bonuses, promotion, learning budget. Keep global pay bands consistent; adjust for local market.',
+ fx:['Cross-region handoff delays'],x:[['Cross-region collaboration score','≥ 4/5']]},
+us:{n:'Google America',ic:'🇺🇸',w:[['Impact',35],['Collaboration',15],['Functional Excellence',20],['Leadership & Googleyness',20],['Innovation',10]],
+ cult:'Direct, specific, written feedback; individual accomplishment and self-advocacy valued; documentation matters (at-will employment, EEO law).',
+ guide:'Be direct and specific with examples. Document facts, not traits; avoid references to protected characteristics. Link to promotion-packet evidence. Encourage employee self-assessment.',
+ rew:'Base + annual bonus + equity; peer and spot bonuses; promotion. Check pay-equity and FLSA classification; benefits like 401(k), health coverage, parental leave.',
+ fx:['Remote/hybrid policy change','Reduction-in-force impact on team'],x:[['Measurable OKR outcomes documented','≥ 70% KR attainment'],['Promo-packet evidence added','1 per half']]},
+in:{n:'Google India',ic:'🇮🇳',w:[['Impact',25],['Collaboration',25],['Functional Excellence',25],['Leadership & Googleyness',15],['Innovation',10]],
+ cult:'Relationship- and hierarchy-aware culture: deliver critical feedback privately and constructively, invite upward feedback safely, discuss career growth and family-relevant benefits explicitly.',
+ guide:'Open with context and appreciation, then specifics. Follow up in writing. Encourage candid upward input one-to-one. Discuss career path and learning explicitly. Account for time-zone overlap with US/EU teams and festival-season load.',
+ rew:'Fixed + variable pay, stock grants, recognition events, learning and wellness benefits. Consider statutory items (PF, gratuity, labour codes), tax treatment, and non-cash recognition valued locally.',
+ fx:['Backfill / attrition gap','Connectivity, power or commute disruption','Festival / regional holiday load','Late-night calls across time zones'],
+ x:[['Collaboration with US/EU teams across time zones','≥ 4/5'],['Mandatory compliance training (incl. POSH)','100%'],['Knowledge transfer & team retention plan','In place']]}};
+const FAM={
+eng:{t:'Engineering',ja:'Designs, builds, tests and operates software. Needs: CS fundamentals, system design, code review, on-call. Conditions: hybrid, on-call rotation.',k:[['OKR deliverables shipped','100% of committed KRs'],['Code review turnaround','< 24h'],['Service reliability (SLO)','≥ 99.9%'],['Design docs & mentoring','2 per quarter']]},
+prod:{t:'Product / Design',ja:'Defines product strategy, requirements and experience. Needs: user research, prioritisation, analytics, stakeholder influence.',k:[['Launch milestones on time','≥ 90%'],['Adoption / engagement metric','Per product OKR'],['User research cycles','1 per quarter'],['Cross-functional alignment score','≥ 4/5']]},
+sales:{t:'Cloud Sales / Customer Engineering',ja:'Drives customer adoption and revenue. Needs: technical depth, consultative selling, account planning, partner work.',k:[['Quota / pipeline attainment','≥ 100%'],['Customer satisfaction (CSAT)','≥ 4.5/5'],['Technical wins / PoCs completed','Per plan'],['Account plan quality','Reviewed quarterly']]},
+ops:{t:'People Operations',ja:'Supports hiring, development, employee relations and compliance. Needs: HR law, coaching, analytics, discretion.',k:[['Time-to-fill / hiring quality','Per workforce plan'],['Employee survey (favourability)','≥ 80%'],['Case resolution time','< 10 days'],['Calibration process adherence','100%']]},
+fin:{t:'Finance',ja:'Planning, reporting, controls and business partnering. Needs: modelling, accounting standards, controls, storytelling.',k:[['Forecast accuracy','± 3%'],['Close timeliness','On calendar'],['Control findings','0 critical'],['Business partner satisfaction','≥ 4/5']]},
+legal:{t:'Legal',ja:'Advises on contracts, privacy, regulatory and IP. Needs: legal expertise, risk judgment, clear writing, business sense.',k:[['Matter turnaround SLA','≥ 90% on time'],['Risk issues escalated early','100%'],['Client satisfaction','≥ 4/5'],['Policy / training delivered','Per plan']]}};
+const EMP=[[1,'Aarav Mehta','Cloud','Staff Software Engineer','eng','in'],[2,'Priya Nair','Search & Ads','Product Manager','prod','in'],[3,'Rohan Kapoor','YouTube','Software Engineer','eng','in'],[4,'Ananya Iyer','Workspace','UX Designer','prod','in'],[5,'Vikram Sethi','Cloud','Cloud Sales Manager','sales','in'],[6,'Neha Bansal','People Operations','HR Business Partner','ops','in'],[7,'Karthik Rao','Finance','Finance Manager','fin','in'],[8,'Sana Qureshi','Legal','Corporate Counsel','legal','in'],[18,'Arjun Desai','Android & Pixel','Software Engineer','eng','in'],[19,'Meera Joshi','Google DeepMind','Research Scientist','eng','in'],
+[9,'Emily Carter','Search & Ads','Senior Software Engineer','eng','us'],[10,'Marcus Johnson','Android & Pixel','Engineering Manager','eng','us'],[11,'Sofia Ramirez','YouTube','Product Manager','prod','us'],[12,'Daniel Kim','Cloud','Customer Engineer','sales','us'],[13,'Olivia Brooks','Workspace','Senior Product Manager','prod','us'],[14,'Ethan Walker','Google DeepMind','Research Engineer','eng','us'],[15,'Hannah Lee','People Operations','People Partner','ops','us'],[16,'Jacob Turner','Finance','Financial Analyst','fin','us'],[17,'Grace Patel','Legal','Privacy Counsel','legal','us'],[20,'Tyler Nguyen','Cloud','Account Executive','sales','us']].map(a=>({id:a[0],name:a[1],dept:a[2],title:a[3],fam:a[4],reg:a[5]}));
+const MON=['Jan','Mar','May','Jul','Sep','Nov'],THEME=['Goal setting (OKRs)','Quarter check-in','Mid-year prep','Mid-year review','Calibration prep','Year-end review'];
+const RT=[['Traditional','MBO (management by objectives)','Annual goals with measurable targets'],['Traditional','Graphic rating scale','Rate traits/competencies 1–5'],['Traditional','BARS','Behaviour-anchored scale for role-specific behaviours'],['Traditional','Critical incident log','Dated facts of notable successes/misses'],['Traditional','Essay / narrative','Free-form manager summary'],['Contemporary','OKRs','Ambitious objectives, scored 0–1.0 key results'],['Contemporary','Continuous feedback / 1:1s','Frequent short check-ins'],['Contemporary','360° / peer feedback','Multi-rater input, anonymised'],['Contemporary','Calibration committee','Peer managers align ratings to reduce bias'],['Contemporary','Strengths & growth review','Future-focused coaching conversation']];
+const FACT=['None / not applicable','Reorg or priority change','Headcount / resourcing gap','Dependency on another team','Tooling or infrastructure outage','Scope change mid-cycle','Market or regulatory change','Manager change','Approved leave (keep details confidential)'];
+const RW=['Spot bonus','Peer bonus','Equity (GSU)','Promotion','Award / shout-out','Learning grant','Other'],DS=['Planned','In progress','Done','Blocked'];
+// ---------- State ----------
+let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}S=S||{ctx:'global',role:'admin',sel:null,tab:0,q:'',dept:'',d:{}};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const can=k=>S.role==='admin'||(k==='m'&&S.role==='manager')||(k==='e'&&S.role==='employee'),dis=k=>can(k)?'':'disabled';
+const get=p=>p.split('.').reduce((o,k)=>o==null?o:o[k],S.d),set=(p,v)=>{const a=p.split('.');let o=S.d;a.slice(0,-1).forEach(k=>o=o[k]);o[a.at(-1)]=v};
+function ens(e){let d=S.d[e.id];if(!d)d=S.d[e.id]={jd:{},k:{},rev:MON.map(()=>({st:'Not started',f:FACT[0],ec:'',mr:'',r:'',ext:0,ev:'',dec:'Pending'})),self:{},mgr:{},rw:[],dv:[],mt:{n:'',need:'',obj:'',kpi:'',cad:'Monthly'},ms:[]};
+ const c=S.ctx,F=FAM[e.fam];if(!d.jd[c])d.jd[c]={ja:`${e.title} in ${e.dept} (${F.t}). ${F.ja} Context: ${CT[c].cult}`,jd:`Own outcomes for ${e.dept} aligned to team OKRs; collaborate across functions; uphold Google's values. Region lens: ${CT[c].n}.`};
+ if(!d.k[c])d.k[c]=F.k.concat(CT[c].x).map(a=>({n:a[0],t:a[1],a:'',p:''}));return d}
+// ---------- UI helpers ----------
+function inp(p,k,type,o){const v=get(p),d=dis(k);const at=`data-p="${p}" ${d}`;
+ if(type==='area')return`<textarea ${at}>${esc(v)}</textarea>`;
+ if(type==='sel')return`<select ${at}>${o.map(x=>`<option ${x==v?'selected':''}>${esc(x)}</option>`).join('')}</select>`;
+ if(type==='range')return`<input type=range min=0 max=100 step=5 ${at} value="${v||0}">`;
+ return`<input type="${type||'text'}" ${o?`list="${o}"`:''} ${at} value="${esc(v)}">`}
+function list(p,cols,k,def){const a=get(p)||[];return`<table><tr>${cols.map(c=>`<th>${c[1]}</th>`).join('')}<th></th></tr>${a.map((r,i)=>`<tr>${cols.map(c=>`<td>${inp(p+'.'+i+'.'+c[0],k,c[2],c[3])}</td>`).join('')}<td>${can(k)?`<button data-del="${p}.${i}">✕</button>`:''}</td></tr>`).join('')}</table>${can(k)?`<button data-add="${p}" data-def='${JSON.stringify(def)}'>+ Add row</button>`:''}`}
+const radar=(a,b,L)=>{const n=L.length,R=75,pt=(i,v)=>{const g=-Math.PI/2+i*2*Math.PI/n;return[100+R*v/5*Math.cos(g),100+R*v/5*Math.sin(g)].map(x=>x.toFixed(1))};
+ const poly=(arr,col)=>`<polygon points="${arr.map((v,i)=>pt(i,+v||0)).join(' ')}" fill="${col}" fill-opacity=".25" stroke="${col}" stroke-width="2"/>`;
+ return`<svg viewBox="0 0 200 200" width="260" role="img" aria-label="Competency radar">${[1,2,3,4,5].map(r=>`<polygon points="${L.map((_,i)=>pt(i,r)).join(' ')}" fill="none" stroke="#9aa0a6" stroke-opacity=".4"/>`).join('')}${L.map((l,i)=>{const[x,y]=pt(i,5.9);return`<text x="${x}" y="${y}" font-size="7" text-anchor="middle" fill="currentColor">${esc(l.split(' ')[0])}</text>`}).join('')}${poly(a,'#4285f4')}${poly(b,'#ea4335')}</svg><div class="m"><span style="color:#4285f4">■ Self</span> &nbsp; <span style="color:#ea4335">■ Manager</span></div>`};
+const bars=(vals,labs,max)=>`<div>${vals.map((v,i)=>`<div class="m" style="display:flex;gap:8px;align-items:center"><span style="width:90px">${esc(labs[i])}</span><div class="bar" style="flex:1"><i style="width:${Math.min(100,(+v||0)/max*100)}%"></i></div><span style="width:34px">${v===''||v==null?'–':v}</span></div>`).join('')}</div>`;
+// ---------- Views ----------
+function dir(){const c=S.ctx,list=EMP.filter(e=>(c==='global'||e.reg===c)&&(!S.dept||e.dept===S.dept)&&(e.name+e.title+e.dept).toLowerCase().includes(S.q.toLowerCase()));
+ const depts=[...new Set(EMP.map(e=>e.dept))];
+ return`<div class="note"><b>Demo data:</b> all employees below are <b>fictional</b>. No real Google staff or performance data is included. Edit or replace records via the roles above, or Export/Import JSON.</div>
+ <div class="card row"><div><input id="q" placeholder="Search name, title, department…" value="${esc(S.q)}"></div><div><select id="dept"><option value="">All departments</option>${depts.map(d=>`<option ${d==S.dept?'selected':''}>${d}</option>`).join('')}</select></div></div>
+ <h3>${CT[c].ic} ${CT[c].n} — ${list.length} people</h3><div class="grid">${list.map(e=>`<div class="card emp" data-open="${e.id}"><b>${e.name}</b><br>${e.title}<br><span class="m">${e.dept}</span><br><span class="tag">${FAM[e.fam].t}</span><span class="tag">${e.reg==='in'?'India':'America'}</span><span class="tag">DEMO</span></div>`).join('')||'<p>No matches.</p>'}</div>
+ <div class="card"><b>Sources &amp; reading</b> <small>(pointers; verify current versions)</small><br><small>Google re:Work — <a href="https://rework.withgoogle.com/" target=_blank rel=noopener>OKRs, goal setting, manager effectiveness</a> · SHRM — performance management toolkits · US EEOC — <a href="https://www.eeoc.gov" target=_blank rel=noopener>employment discrimination law</a> · India Ministry of Labour &amp; Employment — <a href="https://labour.gov.in" target=_blank rel=noopener>labour codes</a> · Gallup — manager coaching and engagement research.</small></div>`}
+function ws(e){const d=ens(e),c=S.ctx,X=CT[c];const T=['1 · Job &amp; KPIs','2 · Assessment','3 · Rewards','4 · Reviews','5 · Development','6 · Mentoring'];
+ let h=`<button id="back">← Directory</button><div class="card" style="margin-top:10px"><h2>${e.name} <span class="tag">DEMO</span></h2>${e.title} · ${e.dept} · ${FAM[e.fam].t} · ${e.reg==='in'?'Google India':'Google America'}<br><span class="m">Viewing under: ${X.ic} ${X.n} context · Role: ${S.role}</span></div><div class="tabs">${T.map((t,i)=>`<button data-tab="${i}" class="${S.tab==i?'on':''}">${t}</button>`).join('')}</div>`;
+ const P=e.id+'.';
+ if(S.tab==0)h+=`<div class="card"><h3>Job analysis</h3>${inp(P+'jd.'+c+'.ja','m','area')}<h3>Job description</h3>${inp(P+'jd.'+c+'.jd','m','area')}<div class="note"><b>${X.n} lens:</b> ${X.cult}</div></div><div class="card"><h3>Role-specific KPIs / parameters</h3>${list(P+'k.'+c,[['n','KPI'],['t','Target'],['a','Actual (manager)','text'],['p','Attainment %','number']],'m',{n:'',t:'',a:'',p:''})}<p class="m">Actuals are blank by design — enter real data from your systems.</p></div>`;
+ if(S.tab==1){const L=X.w.map(w=>w[0]);const sc=L.map(l=>d.self[l]||0),mg=L.map(l=>d.mgr[l]||0);const tot=X.w.reduce((s,w)=>s+w[1]*(+d.mgr[w[0]]||0),0)/100;
+  h+=`<div class="card"><h3>Competency assessment (weights for ${X.n})</h3><table><tr><th>Criterion</th><th>Weight</th><th>Self (1–5)</th><th>Manager (1–5)</th></tr>${X.w.map(w=>`<tr><td>${w[0]}</td><td>${w[1]}%</td><td>${inp(P+'self.'+w[0],'e','number')}</td><td>${inp(P+'mgr.'+w[0],'m','number')}</td></tr>`).join('')}</table><p>Weighted manager score: <b>${tot?tot.toFixed(2):'–'}</b> / 5 &nbsp; ${can('m')?`<button id="demofill">Load illustrative DEMO scores</button>`:''}</p></div>
+  <div class="row"><div class="card"><h3>Radar</h3>${radar(sc,mg,L)}</div><div class="card"><h3>Review rating trend</h3>${bars(d.rev.map(r=>r.r),MON,5)}<h3 style="margin-top:14px">KPI attainment</h3>${bars(d.k[c].map(k=>k.p),d.k[c].map(k=>k.n.slice(0,16)),100)}</div></div>
+  <div class="card"><h3>Assessment toolkit</h3><table><tr><th>Type</th><th>Tool</th><th>Use</th></tr>${RT.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table></div>`}
+ if(S.tab==2){const last=d.rev.filter(r=>r.dec!='Pending').at(-1);h+=`<div class="card"><h3>Rewards &amp; recognition</h3><div class="note">${X.rew}</div>${last?`<p class="m">Latest review decision: <b>${last.dec}</b></p>`:'<p class="m">No review finalised yet — complete the controllability check in Reviews before rewards.</p>'}${list(P+'rw',[['dt','Date','date'],['ty','Type','sel',RW],['ti','Title'],['nt','Rationale / notes'],['v','Value']],'m',{dt:'',ty:RW[0],ti:'',nt:'',v:''})}</div>`}
+ if(S.tab==3)h+=`<div class="note"><b>Controllability protocol (before appraisal/reward):</b> 1) Employee selects contextual factor + comments. 2) Manager verifies with evidence. 3) Manager splits the outcome gap into controllable vs external %. 4) Rate inputs/behaviours separately from outcomes. 5) Calibrate with peer managers. 6) Only then mark "Ready for appraisal".<br><b>${X.n} guidance:</b> ${X.guide}</div>`+d.rev.map((r,i)=>{const p=P+'rev.'+i+'.',sug=r.r?Math.min(5,(+r.r)+(5-r.r)*(r.ext/100)*.5).toFixed(2):'–';
+  return`<details class="card" ${i==0?'open':''}><summary><b>Review ${i+1} · ${MON[i]} · ${THEME[i]}</b> <span class="tag">${r.st}</span></summary><div class="row"><div><label>Status (manager)</label>${inp(p+'st','m','sel',['Not started','In progress','Completed'])}<h4>Employee input</h4><label>Contextual / external factor</label><select data-p="${p}f" ${dis('e')}>${FACT.concat(X.fx).map(x=>`<option ${x==r.f?'selected':''}>${esc(x)}</option>`).join('')}</select><label>Employee comments</label>${inp(p+'ec','e','area')}</div><div><h4>Manager review</h4><label>Manager assessment</label>${inp(p+'mr','m','area')}<label>Rating (1–5)</label>${inp(p+'r','m','number')}<label>External (non-controllable) share of outcome gap: ${r.ext}%</label>${inp(p+'ext','m','range')}<label>Evidence for external factors</label>${inp(p+'ev','m','area')}<p class="m">Suggested context-adjusted rating (guide only): <b>${sug}</b></p><label>Decision</label>${inp(p+'dec','m','sel',['Pending','Hold – needs evidence','Ready for appraisal/reward'])}${r.ext>0&&!r.ev?'<div class="warn">External share set but no evidence documented.</div>':''}${r.f!=FACT[0]&&r.ext==0?'<div class="warn">Employee flagged a factor — manager should assess its effect.</div>':''}</div></div></details>`}).join('');
+ if(S.tab==4)h+=`<div class="card"><h3>Employee development plan</h3><div class="note">Mix of 70% on-the-job, 20% social/mentoring, 10% formal learning. ${c==='in'?'Discuss career path and role expansion explicitly.':c==='us'?'Tie goals to promotion-packet evidence.':'Align goals with global career ladders.'}</div>${list(P+'dv',[['g','Skill / goal'],['a','Action'],['r','Resource / support'],['du','Due','date'],['s','Status','sel',DS]],'m',{g:'',a:'',r:'',du:'',s:DS[0]})}<p class="m">Employees can propose items by switching to the Employee role in demo; manager/admin finalise.</p></div>`;
+ if(S.tab==5)h+=`<div class="card"><h3>Counseling &amp; mentoring</h3><datalist id="mn">${EMP.map(x=>`<option value="${x.name}">`).join('')}</datalist><div class="row"><div><label>Assigned mentor</label>${inp(P+'mt.n','m','text','mn')}<label>Needs identified</label>${inp(P+'mt.need','m','area')}<label>Cadence</label>${inp(P+'mt.cad','m','sel',['Weekly','Fortnightly','Monthly','Quarterly'])}</div><div><label>Objectives</label>${inp(P+'mt.obj','m','area')}<label>Mentoring KPIs</label>${inp(P+'mt.kpi','m','area')}</div></div><div class="note">${c==='in'?'Mentor pairing across levels is natural; encourage mentee to ask questions openly and set agenda.':c==='us'?'Encourage mentee-led agendas and sponsorship conversations in addition to mentoring.':'Consider cross-region mentors for exposure.'}</div><h4>Session log</h4>${list(P+'ms',[['dt','Date','date'],['tp','Topic'],['nt','Notes / follow-up']],'m',{dt:'',tp:'',nt:''})}</div>`;
+ return h}
+function render(){$('#ctxs').innerHTML=Object.keys(CT).map(k=>`<button data-ctx="${k}" class="${S.ctx==k?'on':''}">${CT[k].ic} ${CT[k].n}</button>`).join('');$('#role').value=S.role;
+ const e=EMP.find(x=>x.id==S.sel);$('#app').innerHTML=e?ws(e):dir();save()}
+// ---------- Events ----------
+document.addEventListener('click',ev=>{const t=ev.target.closest('button,[data-open]');if(!t)return;
+ if(t.dataset.ctx){S.ctx=t.dataset.ctx;render()}else if(t.dataset.open){S.sel=+t.dataset.open;S.tab=0;render()}else if(t.id==='back'||t.id==='home'){S.sel=null;render()}
+ else if(t.dataset.tab){S.tab=+t.dataset.tab;render()}
+ else if(t.dataset.add){const a=get(t.dataset.add);a.push(JSON.parse(t.dataset.def));render()}
+ else if(t.dataset.del){const a=t.dataset.del.split('.'),i=a.pop();get(a.join('.')).splice(i,1);render()}
+ else if(t.id==='demofill'){const e=EMP.find(x=>x.id==S.sel),d=ens(e);CT[S.ctx].w.forEach((w,i)=>{d.self[w[0]]=3+(i%3)*.5+.5>5?5:3+(i%3)*.5+.5;d.mgr[w[0]]=3+(i%2)*.5});render()}
+ else if(t.id==='exp'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='google-pms-data.json';a.click()}
+ else if(t.id==='imp')$('#file').click();
+ else if(t.id==='rst'&&confirm('Reset all demo edits?')){localStorage.removeItem(KEY);location.reload()}});
+document.addEventListener('input',ev=>{const t=ev.target;if(t.dataset.p){set(t.dataset.p,t.type==='range'?+t.value:t.value);save()}else if(t.id==='q'){S.q=t.value;const p=t.selectionStart;render();$('#q').focus();$('#q').setSelectionRange(p,p)}});
+document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset.p)render();else if(t.id==='dept'){S.dept=t.value;render()}else if(t.id==='role'){S.role=t.value;render()}else if(t.id==='file'){const r=new FileReader();r.onload=()=>{try{S=JSON.parse(r.result);render()}catch(e){alert('Invalid file')}};r.readAsText(t.files[0])}});
+render();
+</script></body></html>
